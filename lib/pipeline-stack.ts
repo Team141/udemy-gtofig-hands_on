@@ -1,7 +1,11 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import {Artifact, Pipeline} from "aws-cdk-lib/aws-codepipeline";
-import {CodeBuildAction, GitHubSourceAction} from "aws-cdk-lib/aws-codepipeline-actions";
+import {
+  CloudFormationCreateReplaceChangeSetAction, CloudFormationCreateUpdateStackAction,
+  CodeBuildAction,
+  GitHubSourceAction
+} from "aws-cdk-lib/aws-codepipeline-actions";
 import {SecretValue} from "aws-cdk-lib";
 import {BuildSpec, LinuxBuildImage, PipelineProject} from "aws-cdk-lib/aws-codebuild";
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
@@ -48,7 +52,19 @@ export class PipelineStack extends cdk.Stack {
             })
           })
       ]
-    })
+    });
+
+    pipeline.addStage({
+      stageName: "Pipeline_update",
+      actions: [
+          new CloudFormationCreateUpdateStackAction({
+            actionName: "Pipeline_Update",
+            stackName: "PipelineStack",
+            templatePath: cdkbuildOutput.atPath("PipelineStack.template.json"),
+            adminPermissions:true,
+          }),
+      ],
+    });
 
     // The code that defines your stack goes here
 
