@@ -22,8 +22,8 @@ export class PipelineStack extends cdk.Stack {
       actions: [
           new GitHubSourceAction({
             owner: 'Team141',
-            repo: 'aws-pipeline-udemy',
-            branch: 'master',
+            repo: 'udemy-gtofig-hands_on',
+            branch: 'main',
             actionName: 'Pipeline_Source',
             oauthToken: SecretValue.secretsManager('github-token'),
             output: sourceOutput
