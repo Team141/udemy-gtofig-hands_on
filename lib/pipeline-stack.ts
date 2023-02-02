@@ -1,14 +1,15 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import {Artifact, Pipeline} from "aws-cdk-lib/aws-codepipeline";
+import {Artifact, IStage, Pipeline} from "aws-cdk-lib/aws-codepipeline";
 import {
-  CloudFormationCreateReplaceChangeSetAction, CloudFormationCreateUpdateStackAction,
+  CloudFormationCreateUpdateStackAction,
   CodeBuildAction,
   GitHubSourceAction
 } from "aws-cdk-lib/aws-codepipeline-actions";
 import {SecretValue} from "aws-cdk-lib";
 import {BuildSpec, LinuxBuildImage, PipelineProject} from "aws-cdk-lib/aws-codebuild";
 import {ServiceStack} from "./service-stack";
+import {BillingStack} from "./billing-stack";
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 export class PipelineStack extends cdk.Stack {
@@ -100,8 +101,8 @@ export class PipelineStack extends cdk.Stack {
     // });
   }
 
-  public addServiceStage(serviceStack: ServiceStack, stageName: string){
-    this.pipeline.addStage({
+  public addServiceStage(serviceStack: ServiceStack, stageName: string): IStage {
+    return this.pipeline.addStage({
       stageName:stageName,
       actions: [
           new CloudFormationCreateUpdateStackAction({
@@ -110,11 +111,20 @@ export class PipelineStack extends cdk.Stack {
             templatePath: this.cdkBuildOutput.atPath(`${serviceStack.stackName}.template.json`),
             adminPermissions: true,
             parameterOverrides: {
-              ...serviceStack.serviceCode.assign(this.serviceBuildOutput.s3Location)
+              ...serviceStack.serviceCode.assign(this.serviceBuildOutput.s3Location),
             },
-            extraInputs: [this.serviceBuildOutput]
-          })
-      ]
-    })
-  }
+            extraInputs: [this.serviceBuildOutput],
+          }),
+      ],
+    });
+  };
+
+  public addBillingStackToStage(billingStack: BillingStack, stage: IStage) {
+    stage.addAction(new CloudFormationCreateUpdateStackAction({
+      actionName: "Billing_update",
+      stackName: billingStack.stackName,
+      templatePath: this.cdkBuildOutput.atPath(`${billingStack.stackName}.template.json`),
+      adminPermissions: true
+    }))
+  };
 }
